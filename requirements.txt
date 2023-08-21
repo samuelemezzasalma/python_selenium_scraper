@@ -1,0 +1,4 @@
+pandas
+selenium==4.11.2
+bs4
+lxml
