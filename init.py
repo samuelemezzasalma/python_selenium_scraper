@@ -1,12 +1,13 @@
 import pandas as pd
-import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup as BS
-import time
-import random
+from tabulate import tabulate
 
-from utils import get_total_page_number, read_page
+
+from utils import extract_page, get_total_page_number, read_page
 
 # Replace with the path to your web driver
 #  'C:/Users/jossl/Downloads/chromedriver_win32/chromedriver.exe'
@@ -33,6 +34,9 @@ login_button.click()
 # Go to Directory
 driver.get('directory_url')
 
+wait = WebDriverWait(driver, 10)  # Wait for a maximum of 10 seconds
+
+
 # Set panda DataFrame
 kol = pd.DataFrame()
 
@@ -51,7 +55,6 @@ count_down = int(total_page_number) - 5
 # Iterate over page indeces and click navigation links
 for page in range(int(total_page_number)):
     print(page)
-    time.sleep(1.5)
     if page == 0:
         print("skip")
     elif page == 1:
@@ -70,9 +73,28 @@ for page in range(int(total_page_number)):
         for last in range(8, 12):
             driver.find_element(
                 By.XPATH, '//*[@id="ctl00_CphBody_LnkPage1_' + str(last) + '"]').click()
-            kol = read_page(kol, soup)
+            # kol = read_page(kol, soup)
+            kol = extract_page(kol, driver.source)
         break
+    # time.sleep(3)
 
-    kol = read_page(kol, soup)
+    # waint until spinner is hidden
+    element_to_hide = driver.find_element(
+        By.XPATH, '//*[@id="DivProcessing"]')
+    wait.until(EC.invisibility_of_element_located(element_to_hide))
+
+    # Extract page and concatenate DataFrame
+    # kol = read_page(kol, soup)
+
+    list_of_rows = extract_page(kol, driver.page_source)
+
+    # Creating a new DataFrame from the list of dictionaries
+    new_df = pd.DataFrame(list_of_rows)
+
+    # Concatenating the new DataFrame with the existing DataFrame
+    kol = pd.concat([kol, new_df], ignore_index=True)
+
+    # Print Dataframe
+    print(tabulate(kol, headers='keys', tablefmt='psql'))
 
 driver.quit()
