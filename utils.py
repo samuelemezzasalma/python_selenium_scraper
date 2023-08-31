@@ -2,6 +2,8 @@ import re
 from bs4 import BeautifulSoup as BS
 import pandas as pd
 import string
+from selenium import webdriver
+from tabulate import tabulate
 
 def get_total_page_number(soup: BS):
     header = soup.find(
@@ -119,3 +121,18 @@ def extract_page(kol: pd.DataFrame, source: str):
 
         membersExtracted.append(row)
     return membersExtracted
+
+def extract_in_pandas(driver: webdriver.Chrome, kol: pd.DataFrame):
+    list_of_rows = extract_page(kol, driver.page_source)
+    print(list_of_rows)
+
+    # Creating a new DataFrame from the list of dictionaries
+    new_df = pd.DataFrame(list_of_rows)
+
+    # Concatenating the new DataFrame with the existing DataFrame
+    kol = pd.concat([kol, new_df], ignore_index=True)
+
+    print(tabulate(kol, headers='keys', tablefmt='psql'))
+
+    return kol
+

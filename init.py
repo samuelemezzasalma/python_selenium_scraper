@@ -4,10 +4,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup as BS
-from tabulate import tabulate
 
 
-from utils import extract_page, get_total_page_number, read_page
+from utils import extract_in_pandas, extract_page, get_total_page_number, read_page
 
 # Replace with the path to your web driver
 #  'C:/Users/jossl/Downloads/chromedriver_win32/chromedriver.exe'
@@ -36,9 +35,10 @@ driver.get('directory_url')
 
 wait = WebDriverWait(driver, 10)  # Wait for a maximum of 10 seconds
 
-
 # Set panda DataFrame
 kol = pd.DataFrame()
+
+kol = extract_in_pandas(driver, kol)
 
 # Init BeautifulSoup on page source
 soup = BS(driver.page_source, 'lxml')
@@ -53,17 +53,19 @@ index = total_page_number - range(8, 12) - 1 (because index start from 0)
 count_down = int(total_page_number) - 5
 
 # Iterate over page indeces and click navigation links
-for page in range(int(total_page_number)):
+for page in range(1, int(total_page_number)):
+
+    page += 1
+
     print(page)
-    if page == 0:
-        print("skip")
-    elif page == 1:
+
+    if page == 2:
         driver.find_element(By.XPATH,
                             '//*[@id="ctl00_CphBody_LnkPage1_1"]').click()
 
-    elif page > 1 and page < 7:
+    elif page > 2 and page < 7:
         driver.find_element(By.XPATH,
-                            '//*[@id="ctl00_CphBody_LnkPage1_' + str(page + 1) + '"]').click()
+                            '//*[@id="ctl00_CphBody_LnkPage1_' + str(page) + '"]').click()
 
     elif page >= 7 and page <= count_down:
         driver.find_element(By.XPATH,
@@ -74,7 +76,7 @@ for page in range(int(total_page_number)):
             driver.find_element(
                 By.XPATH, '//*[@id="ctl00_CphBody_LnkPage1_' + str(last) + '"]').click()
             # kol = read_page(kol, soup)
-            kol = extract_page(kol, driver.source)
+            extract_in_pandas(driver, kol)
         break
     # time.sleep(3)
 
@@ -86,15 +88,12 @@ for page in range(int(total_page_number)):
     # Extract page and concatenate DataFrame
     # kol = read_page(kol, soup)
 
-    list_of_rows = extract_page(kol, driver.page_source)
-
-    # Creating a new DataFrame from the list of dictionaries
-    new_df = pd.DataFrame(list_of_rows)
-
-    # Concatenating the new DataFrame with the existing DataFrame
-    kol = pd.concat([kol, new_df], ignore_index=True)
+    kol = extract_in_pandas(driver, kol)
 
     # Print Dataframe
-    print(tabulate(kol, headers='keys', tablefmt='psql'))
+    # print(tabulate(kol, headers='keys', tablefmt='psql'))
+
+# Export DataFrame to CSV
+kol.to_csv('output.csv', index=False)
 
 driver.quit()
